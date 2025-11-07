@@ -1,0 +1,9 @@
+#!/bin/sh
+
+name=$(nmcli device | grep -w "connected" | grep wlan0 | awk '{for (i=4;i<=NF;i++) printf$i " "}')
+
+if [ $name = "--" ]; then
+    echo "  "
+else
+    echo "   $name "
+fi

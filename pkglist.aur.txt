@@ -1,0 +1,7 @@
+android-studio
+ani-cli
+bibata-cursor-theme
+picotool
+windsurf
+yay
+zen-browser-bin

@@ -1,0 +1,93 @@
+#!/bin/sh
+
+# --- Configuration ---
+# Set the absolute path to your 'github/sway' directory
+# The 'tilde' (~) automatically expands to your home directory.
+BACKUP_BASE_DIR=~/github/sway
+
+# Source directories
+SOURCE_CONFIG_DIR=~/.config
+SOURCE_BIN_DIR=~/.local/bin
+
+# Destination directories (based on your 'ls' output)
+CONFIG_DEST_DIR=$BACKUP_BASE_DIR/config
+# You called your bin folder 'script', so we'll use that.
+BIN_DEST_DIR=$BACKUP_BASE_DIR/script
+
+#
+# -----------------------------------------------------------------
+# !! IMPORTANT !!
+# Edit this list to include all the config folders you want to save.
+# -----------------------------------------------------------------
+#
+CONFIG_DIRS_TO_BACKUP=(
+    "sway"
+    "swaylock"
+    "waybar"
+    "wofi"
+    "nwg-look"
+    "wal"
+    "nvim"
+    "cava"
+    "kitty"
+    "gammastep"
+)
+
+# Package list filenames
+PACMAN_PKGLIST=$BACKUP_BASE_DIR/pkglist.pacman.txt
+AUR_PKGLIST=$BACKUP_BASE_DIR/pkglist.aur.txt
+
+# --- End Configuration ---
+
+# Function for colorized logging
+log_info() { echo -e "\e[34m[INFO]\e[0m $1"; }
+log_warn() { echo -e "\e[33m[WARN]\e[0m $1"; }
+log_success() { echo -e "\e[32m[SUCCESS]\e[0m $1"; }
+
+# Ensure base backup directory exists
+mkdir -p "$BACKUP_BASE_DIR"
+log_info "Backup target: $BACKUP_BASE_DIR"
+
+# --- 1. Backup Config Files ---
+log_info "Backing up configuration files from $SOURCE_CONFIG_DIR..."
+mkdir -p "$CONFIG_DEST_DIR"
+
+for dir in "${CONFIG_DIRS_TO_BACKUP[@]}"; do
+    if [ -d "$SOURCE_CONFIG_DIR/$dir" ]; then
+        log_info "  -> Syncing $dir"
+        # Ensure the target subdirectory exists
+        mkdir -p "$CONFIG_DEST_DIR/$dir"
+        # Sync contents *into* the target dir. --delete removes old files.
+        cp -a "$SOURCE_CONFIG_DIR/$dir/." "$CONFIG_DEST_DIR/$dir/"
+    else
+        log_warn "  -> Skipping '$dir' (Not found in $SOURCE_CONFIG_DIR)"
+    fi
+done
+
+# --- 2. Backup Bin Files ---
+log_info "Backing up scripts from $SOURCE_BIN_DIR..."
+if [ -d "$SOURCE_BIN_DIR" ]; then
+    mkdir -p "$BIN_DEST_DIR"
+    # Sync contents of .local/bin to github/sway/script
+    cp -a "$SOURCE_BIN_DIR/." "$BIN_DEST_DIR/"
+else
+    log_warn "Skipping '$SOURCE_BIN_DIR' (Directory not found)"
+fi
+
+# --- 3. Generate Package Lists ---
+log_info "Generating package lists..."
+
+# 'pacman -Qenq' lists explicitly installed native packages
+pacman -Qenq > "$PACMAN_PKGLIST"
+log_info "  -> Saved Pacman package list to $PACMAN_PKGLIST"
+
+# 'pacman -Qemq' lists explicitly installed foreign (AUR) packages
+pacman -Qemq > "$AUR_PKGLIST"
+log_info "  -> Saved AUR package list to $AUR_PKGLIST"
+
+echo
+log_success "Backup complete!"
+log_info "You can now 'cd $BACKUP_BASE_DIR' and run:"
+log_info "  git add ."
+log_info "  git commit -m \"Update configs\""
+log_info "  git push -u origin main"

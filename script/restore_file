@@ -1,0 +1,91 @@
+#!/bin/sh
+
+# This script restores configs and installs packages from your backup.
+#
+# 1. Clone your repo: git clone <your-repo-url> ~/github/sway
+# 2. cd ~/github/sway
+# 3. Make this script executable: chmod +x restore.sh
+# 4. Run it: ./restore.sh
+#
+
+# Stop on any error
+set -e
+
+# Function for colorized logging
+log_info() { echo -e "\e[34m[INFO]\e[0m $1"; }
+log_success() { echo -e "\e[32m[SUCCESS]\e[0m $1"; }
+
+# Ensure we are in the script's directory (the repo root)
+cd "$(dirname "$0")"
+REPO_DIR=$(pwd)
+log_info "Restoring from $REPO_DIR"
+
+# --- Configuration ---
+SOURCE_CONFIG_DIR=$REPO_DIR/config
+SOURCE_BIN_DIR=$REPO_DIR/script
+
+DEST_CONFIG_DIR=~/.config
+DEST_BIN_DIR=~/.local/bin
+
+PACMAN_PKGLIST=$REPO_DIR/pkglist.pacman.txt
+AUR_PKGLIST=$REPO_DIR/pkglist.aur.txt
+
+# --- Safety Check ---
+read -p "This script will overwrite existing configs. Continue? (y/n) " -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    log_info "Restore cancelled."
+    exit 1
+fi
+
+# --- 1. Install Packages ---
+log_info "Installing Pacman (native) packages..."
+if [ -f "$PACMAN_PKGLIST" ]; then
+    sudo pacman -S --needed --noconfirm - < "$PACMAN_PKGLIST"
+else
+    log_info "No Pacman package list found."
+fi
+
+log_info "Installing AUR packages..."
+if [ -f "$AUR_PKGLIST" ]; then
+    # Check for yay or paru
+    if command -v yay &> /dev/null; then
+        log_info "Using 'yay' to install AUR packages..."
+        yay -S --needed --noconfirm - < "$AUR_PKGLIST"
+    elif command -v paru &> /dev/null; then
+        log_info "Using 'paru' to install AUR packages..."
+        paru -S --needed --noconfirm - < "$AUR_PKGLIST"
+    else
+        log_info "WARNING: Neither 'yay' nor 'paru' found."
+        log_info "Please install an AUR helper and then run manually:"
+        log_info "  <helper> -S --needed - < $AUR_PKGLIST"
+    fi
+else
+    log_info "No AUR package list found."
+fi
+
+# --- 2. Restore Config Files ---
+log_info "Restoring config files to $DEST_CONFIG_DIR..."
+if [ -d "$SOURCE_CONFIG_DIR" ]; then
+    mkdir -p "$DEST_CONFIG_DIR"
+    # Use rsync to copy all config folders over
+    cp -a "$SOURCE_CONFIG_DIR/." "$DEST_CONFIG_DIR/"
+else
+    log_info "No 'config' directory found."
+fi
+
+# --- 3. Restore Bin/Script Files ---
+log_info "Restoring scripts to $DEST_BIN_DIR..."
+if [ -d "$SOURCE_BIN_DIR" ]; then
+    mkdir -p "$DEST_BIN_DIR"
+    cp -a "$SOURCE_BIN_DIR/." "$DEST_BIN_DIR/"
+    
+    log_info "Making scripts in $DEST_BIN_DIR executable..."
+    find "$DEST_BIN_DIR" -type f -exec chmod +x {} \;
+else
+    log_info "No 'script' directory found."
+fi
+
+echo
+log_success "Restore complete!"
+log_info "You may need to reboot or log out and back in for all changes to take effect."
