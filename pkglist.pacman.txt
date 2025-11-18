@@ -25,7 +25,6 @@ docker-compose
 efibootmgr
 fastfetch
 foot
-freecad
 gammastep
 gimp
 git
@@ -37,13 +36,14 @@ htop
 intel-media-driver
 intel-ucode
 iwd
-kdeconnect
 kitty
 libisoburn
 libpulse
 libreoffice-still
 libva-intel-driver
+linux
 linux-firmware
+linux-headers
 linux-lts
 linux-lts-headers
 ly

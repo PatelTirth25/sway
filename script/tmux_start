@@ -1,41 +1,24 @@
 #!/bin/sh
-
 # Directory containing all projects
 BASE_DIR="/home/tirth/code"
 
-# Get list of directories and let user choose
-echo "Available projects:"
-# Using find to list only directories, excluding hidden ones
-projects=$(find "$BASE_DIR" -maxdepth 1 -type d ! -name ".*" ! -path "$BASE_DIR")
-i=1
-for project in $projects; do
-    echo "$i) $(basename "$project")"
-    i=$((i + 1))
-done
+# Get list of directories and let user choose with fzf
+echo "Select a project:"
+selected_project=$(find "$BASE_DIR" -maxdepth 1 -type d ! -name ".*" ! -path "$BASE_DIR" -exec basename {} \; | fzf --prompt="Project: " --height=40% --reverse --border)
 
-# Get user input
-echo -n "Enter the number of the project to open: "
-read -r choice
-
-# Validate input and get the selected project
-i=1
-selected_project=""
-for project in $projects; do
-    if [ "$i" -eq "$choice" ]; then
-        selected_project="$project"
-        break
-    fi
-    i=$((i + 1))
-done
-
+# Check if user cancelled selection
 if [ -z "$selected_project" ]; then
-    echo "Invalid selection"
+    echo "No project selected"
     exit 1
 fi
 
+# Get full path
+selected_project="$BASE_DIR/$selected_project"
+
 # Session name (using project name as session name)
 SESSION_NAME="$(basename "$selected_project")"
-tmux kill-session -t "$SESSION_NAME"
+
+tmux kill-session -t "$SESSION_NAME" 2>/dev/null
 
 # Start a new tmux session with a temporary window
 tmux new-session -d -s "$SESSION_NAME"

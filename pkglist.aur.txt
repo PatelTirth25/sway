@@ -1,6 +1,7 @@
 android-studio
 ani-cli
 bibata-cursor-theme
+localsend
 picotool
 windsurf
 yay
